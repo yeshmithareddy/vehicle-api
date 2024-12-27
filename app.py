@@ -3,6 +3,7 @@ import threading
 import requests
 import time
 import random
+from waitress import serve
 
 app = Flask(__name__)
 
@@ -41,7 +42,7 @@ def generate_vehicle_data(num_records=5):
 
     for i in range(num_records):
         vehicle = {
-            "vehicle_id": i + 1,
+            "vehicle_id": random.randint(1000, 9999),  # Generate a random vehicle ID each time
             "manufacturer": random.choice(manufacturers),
             "model": random.choice(models),
             "year": random.randint(2000, 2023),
@@ -62,7 +63,7 @@ def generate_recall_data(num_records=5):
 
     for i in range(num_records):
         recall = {
-            "recall_id": i + 1,
+            "recall_id": random.randint(1000, 9999),  # Generate a random recall ID each time
             "manufacturer": random.choice(manufacturers),
             "model": random.choice(models),
             "year": random.randint(2000, 2023),
@@ -94,8 +95,9 @@ def send_data():
         print(f"Recall Response: {response.json()}")
 
 if __name__ == '__main__':
-    # Start Flask server in a separate thread
-    server_thread = threading.Thread(target=lambda: app.run(debug=True, use_reloader=False))
+    # Start the server using Waitress
+    print("Starting Flask app using Waitress...")
+    server_thread = threading.Thread(target=lambda: serve(app, host='0.0.0.0', port=5000))
     server_thread.start()
 
     # Send data to the API
