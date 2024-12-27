@@ -7,7 +7,7 @@ from waitress import serve
 
 app = Flask(__name__)
 
-# In-memory data storage
+# In-memory data storage (stored globally for persistence)
 vehicle_data = []
 vehicle_recall_data = []
 
@@ -40,7 +40,7 @@ def generate_vehicle_data(num_records=5):
     fuel_types = ["Petrol", "Diesel", "Electric", "Hybrid"]
     vehicles = []
 
-    for i in range(num_records):
+    for _ in range(num_records):
         vehicle = {
             "vehicle_id": random.randint(1000, 9999),  # Generate a random vehicle ID each time
             "manufacturer": random.choice(manufacturers),
@@ -61,7 +61,7 @@ def generate_recall_data(num_records=5):
     risks = ["Low", "Medium", "High"]
     recalls = []
 
-    for i in range(num_records):
+    for _ in range(num_records):
         recall = {
             "recall_id": random.randint(1000, 9999),  # Generate a random recall ID each time
             "manufacturer": random.choice(manufacturers),
@@ -74,7 +74,7 @@ def generate_recall_data(num_records=5):
         recalls.append(recall)
     return recalls
 
-# Function to send data to the API
+# Function to send data to the API asynchronously
 def send_data():
     time.sleep(1)  # Ensure server starts before sending data
     vehicle_api_url = "http://127.0.0.1:5000/vehicles"
@@ -86,19 +86,35 @@ def send_data():
 
     # Send Vehicle Data to API
     for vehicle in vehicles:
-        response = requests.post(vehicle_api_url, json=vehicle)
-        print(f"Vehicle Response: {response.json()}")
+        try:
+            response = requests.post(vehicle_api_url, json=vehicle)
+            if response.status_code == 201:
+                print(f"Vehicle Added: {response.json()}")
+            else:
+                print(f"Failed to add vehicle: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error sending vehicle data: {e}")
 
     # Send Recall Data to API
     for recall in recalls:
-        response = requests.post(recall_api_url, json=recall)
-        print(f"Recall Response: {response.json()}")
+        try:
+            response = requests.post(recall_api_url, json=recall)
+            if response.status_code == 201:
+                print(f"Recall Added: {response.json()}")
+            else:
+                print(f"Failed to add recall: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error sending recall data: {e}")
+
+# Start Flask app in a separate thread using Waitress
+def start_flask_app():
+    print("Starting Flask app using Waitress...")
+    serve(app, host='0.0.0.0', port=5000)
 
 if __name__ == '__main__':
-    # Start the server using Waitress
-    print("Starting Flask app using Waitress...")
-    server_thread = threading.Thread(target=lambda: serve(app, host='0.0.0.0', port=5000))
+    # Start Flask server in a separate thread
+    server_thread = threading.Thread(target=start_flask_app)
     server_thread.start()
 
-    # Send data to the API
+    # Call function to send data to the API
     send_data()
